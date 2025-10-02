@@ -7,7 +7,7 @@
 
     <!-- Agregar Firebase SDK desde CDN -->
     <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-firestore.js"></script>
 
     <style>
         /* Estilos de la página */
@@ -218,7 +218,7 @@
 
         // Inicializar Firebase
         const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        const db = firebase.firestore();
 
         // Mostrar el popup
         function showPopup() {
@@ -245,9 +245,8 @@
 
             // Validar que todos los campos necesarios estén completos
             if (fullName && phone && email && massageType && date && time) {
-                // Guardar la reserva en Firebase
-                const reservationRef = database.ref('reservations/' + fullName + '_' + date + '_' + time);
-                reservationRef.set({
+                // Guardar la reserva en Firestore
+                db.collection('reservations').add({
                     full_name: fullName,
                     phone: phone,
                     email: email,
