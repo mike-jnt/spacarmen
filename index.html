@@ -85,62 +85,69 @@
   }
 
   // Manejar reserva
-  async function handleReservation(event) {
-    event.preventDefault();
+// Manejar reserva
+async function handleReservation(event) {
+  event.preventDefault();
 
-    const fullName = document.getElementById("full-name").value.trim();
-    const phone = document.getElementById("phone").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const massageType = document.getElementById("massage-type").value;
-    const date = document.getElementById("date").value;
-    const time = document.getElementById("time").value;
-    const comments = document.getElementById("comments").value.trim();
+  const fullName = document.getElementById("full-name").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const massageType = document.getElementById("massage-type").value;
+  const date = document.getElementById("date").value;
+  const time = document.getElementById("time").value;
+  const comments = document.getElementById("comments").value.trim();
 
-    if (fullName && phone && email && massageType && date && time) {
-      try {
-        const reservationsRef = collection(db, "reservations");
-        const q = query(
-          reservationsRef,
-          where("date", "==", date),
-          where("time", "==", time)
-        );
-        const querySnapshot = await getDocs(q);
+  if (fullName && phone && email && massageType && date && time) {
+    try {
+      const reservationsRef = collection(db, "reservations");
+      const q = query(
+        reservationsRef,
+        where("date", "==", date),
+        where("time", "==", time)
+      );
+      const querySnapshot = await getDocs(q);
 
-        if (!querySnapshot.empty) {
-          alert("⚠️ Esa hora acaba de ser reservada por otra persona. Elige otra por favor.");
-          actualizarHorasDisponibles();
-          return;
-        }
-
-        const codigoReserva = generarCodigoReserva();
-
-        await addDoc(reservationsRef, {
-          full_name: fullName,
-          phone,
-          email,
-          massage_type: massageType,
-          date,
-          time,
-          comments,
-          status: "Pendiente",
-          reservation_code: codigoReserva,
-          address: direccionLocal,
-        });
-
-        // Mostrar datos dinámicamente en el popup
-        document.getElementById("popup-date").textContent = `${date} a las ${time}`;
-        document.getElementById("popup-service").textContent = massageType.charAt(0).toUpperCase() + massageType.slice(1);
-        document.getElementById("popup-address").textContent = direccionLocal;
-        document.getElementById("popup-code").textContent = codigoReserva;
-
-        document.getElementById("popup").style.display = "flex";
-      } catch (e) {
-        alert("Error al guardar la reserva: " + e.message);
+      if (!querySnapshot.empty) {
+        alert("⚠️ Esa hora acaba de ser reservada por otra persona. Elige otra por favor.");
+        actualizarHorasDisponibles();
+        return;
       }
-    } else {
-      alert("Por favor, complete todos los campos requeridos.");
+
+      const codigoReserva = generarCodigoReserva();
+
+      await addDoc(reservationsRef, {
+        full_name: fullName,
+        phone,
+        email,
+        massage_type: massageType,
+        date,
+        time,
+        comments,
+        status: "Pendiente",
+        reservation_code: codigoReserva,
+        address: direccionLocal,
+      });
+
+      // Mostrar datos en el popup
+      document.getElementById("popup-date").textContent = `${date} a las ${time}`;
+      document.getElementById("popup-service").textContent = massageType.charAt(0).toUpperCase() + massageType.slice(1);
+      document.getElementById("popup-address").textContent = direccionLocal;
+      document.getElementById("popup-code").textContent = codigoReserva;
+      document.getElementById("popup").style.display = "flex";
+
+      // 🧹 Limpiar los campos del formulario
+      document.getElementById("reservation-form").reset();
+
+      // 🕓 Actualizar horarios por si la fecha actual sigue seleccionada
+      actualizarHorasDisponibles();
+
+    } catch (e) {
+      alert("Error al guardar la reserva: " + e.message);
     }
+  } else {
+    alert("Por favor, complete todos los campos requeridos.");
   }
+}
 
   // Inicialización de eventos
   document.addEventListener("DOMContentLoaded", () => {
