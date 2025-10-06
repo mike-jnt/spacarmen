@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 
   <!-- Firebase (mismo script funcional que antes) -->
-  <script type="module">
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
   import {
     getFirestore,
@@ -32,33 +32,41 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // 🔹 Horarios disponibles base (puedes editarlos)
+  // 🔹 Dirección fija del local (puedes cambiarla fácilmente)
+  const direccionLocal = "Calle Las Rosas 123, Ciudad del Sol";
+
+  // 🔹 Horarios disponibles base
   const horariosDisponibles = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00"];
 
-  // Función para actualizar las horas disponibles según la fecha seleccionada
+  // Generar ID de reserva único
+  function generarCodigoReserva() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return "RSV-" + result;
+  }
+
+  // Actualizar horas disponibles según la fecha seleccionada
   async function actualizarHorasDisponibles() {
     const date = document.getElementById("date").value;
     const timeSelect = document.getElementById("time");
 
     if (!date) return;
 
-    // Limpiar opciones previas
     timeSelect.innerHTML = "<option value=''>Cargando...</option>";
 
     try {
-      // Buscar reservas existentes en esa fecha
       const reservationsRef = collection(db, "reservations");
       const q = query(reservationsRef, where("date", "==", date));
       const querySnapshot = await getDocs(q);
-
       const horasOcupadas = querySnapshot.docs.map((doc) => doc.data().time);
 
-      // Filtrar horas disponibles
       const horasLibres = horariosDisponibles.filter(
         (hora) => !horasOcupadas.includes(hora)
       );
 
-      // Mostrar visualmente las horas libres
       if (horasLibres.length > 0) {
         timeSelect.innerHTML = "<option value=''>Selecciona una hora</option>";
         horasLibres.forEach((hora) => {
@@ -76,7 +84,7 @@
     }
   }
 
-  // Función principal para manejar la reserva
+  // Manejar reserva
   async function handleReservation(event) {
     event.preventDefault();
 
@@ -90,7 +98,6 @@
 
     if (fullName && phone && email && massageType && date && time) {
       try {
-        // Validar si la hora sigue disponible
         const reservationsRef = collection(db, "reservations");
         const q = query(
           reservationsRef,
@@ -101,11 +108,12 @@
 
         if (!querySnapshot.empty) {
           alert("⚠️ Esa hora acaba de ser reservada por otra persona. Elige otra por favor.");
-          actualizarHorasDisponibles(); // Actualiza lista
+          actualizarHorasDisponibles();
           return;
         }
 
-        // Guardar reserva
+        const codigoReserva = generarCodigoReserva();
+
         await addDoc(reservationsRef, {
           full_name: fullName,
           phone,
@@ -115,7 +123,15 @@
           time,
           comments,
           status: "Pendiente",
+          reservation_code: codigoReserva,
+          address: direccionLocal,
         });
+
+        // Mostrar datos dinámicamente en el popup
+        document.getElementById("popup-date").textContent = `${date} a las ${time}`;
+        document.getElementById("popup-service").textContent = massageType.charAt(0).toUpperCase() + massageType.slice(1);
+        document.getElementById("popup-address").textContent = direccionLocal;
+        document.getElementById("popup-code").textContent = codigoReserva;
 
         document.getElementById("popup").style.display = "flex";
       } catch (e) {
@@ -132,10 +148,10 @@
       .getElementById("reservation-form")
       .addEventListener("submit", handleReservation);
 
-    // Cuando el usuario cambie la fecha, actualizar las horas disponibles
-    document.getElementById("date").addEventListener("change", actualizarHorasDisponibles);
+    document
+      .getElementById("date")
+      .addEventListener("change", actualizarHorasDisponibles);
 
-    // Botón modo oscuro
     const toggle = document.getElementById("theme-toggle");
     toggle.addEventListener("click", () => {
       document.body.classList.toggle("dark");
@@ -143,6 +159,7 @@
     });
   });
 </script>
+
 
   <style>
     :root {
@@ -378,14 +395,19 @@
     <div class="image-container"></div>
   </div>
 
-  <div id="popup" class="popup">
-    <div class="popup-content">
-      <h2>¡Reserva exitosa!</h2>
-      <p>Tu cita ha sido reservada correctamente.</p>
-      <button class="popup-button" onclick="document.getElementById('popup').style.display='none'">
-        Cerrar
-      </button>
-    </div>
+<!-- Popup de confirmación -->
+<div id="popup" class="popup">
+  <div class="popup-content">
+    <h2>¡Reserva exitosa! 🎉</h2>
+    <p>Tu cita ha sido reservada para <strong id="popup-date"></strong>.</p>
+    <p>Servicio: <strong id="popup-service"></strong></p>
+    <p>Dirección: <strong id="popup-address"></strong></p>
+    <p>Número de reserva: <strong id="popup-code"></strong></p>
+    <button class="popup-button" onclick="document.getElementById('popup').style.display='none'">
+      Cerrar
+    </button>
   </div>
+</div>
+
 </body>
 </html>
