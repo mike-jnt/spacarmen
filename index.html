@@ -5,168 +5,157 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reserva tu cita</title>
 
-  <!-- Fuente moderna -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 
-  <!-- Firebase (mismo script funcional que antes) -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    addDoc,
-    query,
-    where,
-    getDocs,
-  } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      where,
+      getDocs,
+    } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDpCWpQfKSJwSvAyIL421LQHPDRE1PfY8k",
-    authDomain: "spaspa-30bad.firebaseapp.com",
-    projectId: "spaspa-30bad",
-    storageBucket: "spaspa-30bad.firebasestorage.app",
-    messagingSenderId: "262101316591",
-    appId: "1:262101316591:web:5c250165b10ef314373c1a",
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyDpCWpQfKSJwSvAyIL421LQHPDRE1PfY8k",
+      authDomain: "spaspa-30bad.firebaseapp.com",
+      projectId: "spaspa-30bad",
+      storageBucket: "spaspa-30bad.firebasestorage.app",
+      messagingSenderId: "262101316591",
+      appId: "1:262101316591:web:5c250165b10ef314373c1a",
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-  // 🔹 Dirección fija del local (puedes cambiarla fácilmente)
-  const direccionLocal = "Calle Las Rosas 123, Ciudad del Sol";
+    // 🔹 Información del negocio
+    const direccionLocal = "Calle Juan Dias Rodriguez # 29, barrio Puerto Rico Mogán";
+    const horarioAtencion = "De 10:00 am a 18:00";
 
-  // 🔹 Horarios disponibles base
-  const horariosDisponibles = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00"];
+    // 🔹 Horarios disponibles base (de 10:00 a 18:00)
+    const horariosDisponibles = [
+      "10:00", "11:00", "12:00", "13:00", "14:00",
+      "15:00", "16:00", "17:00", "18:00"
+    ];
 
-  // Generar ID de reserva único
-  function generarCodigoReserva() {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let result = "";
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    // Generar código de reserva único
+    function generarCodigoReserva() {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let result = "";
+      for (let i = 0; i < 6; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+      return "RSV-" + result;
     }
-    return "RSV-" + result;
-  }
 
-  // Actualizar horas disponibles según la fecha seleccionada
-  async function actualizarHorasDisponibles() {
-    const date = document.getElementById("date").value;
-    const timeSelect = document.getElementById("time");
+    // Actualizar horas disponibles según fecha
+    async function actualizarHorasDisponibles() {
+      const date = document.getElementById("date").value;
+      const timeSelect = document.getElementById("time");
+      if (!date) return;
 
-    if (!date) return;
+      timeSelect.innerHTML = "<option value=''>Cargando...</option>";
 
-    timeSelect.innerHTML = "<option value=''>Cargando...</option>";
+      try {
+        const reservationsRef = collection(db, "reservations");
+        const q = query(reservationsRef, where("date", "==", date));
+        const querySnapshot = await getDocs(q);
+        const horasOcupadas = querySnapshot.docs.map((doc) => doc.data().time);
+        const horasLibres = horariosDisponibles.filter((hora) => !horasOcupadas.includes(hora));
 
-    try {
-      const reservationsRef = collection(db, "reservations");
-      const q = query(reservationsRef, where("date", "==", date));
-      const querySnapshot = await getDocs(q);
-      const horasOcupadas = querySnapshot.docs.map((doc) => doc.data().time);
+        if (horasLibres.length > 0) {
+          timeSelect.innerHTML = "<option value=''>Selecciona una hora</option>";
+          horasLibres.forEach((hora) => {
+            const option = document.createElement("option");
+            option.value = hora;
+            option.textContent = hora;
+            timeSelect.appendChild(option);
+          });
+        } else {
+          timeSelect.innerHTML = "<option value=''>No hay horarios disponibles</option>";
+        }
+      } catch (error) {
+        console.error("Error al cargar las horas:", error);
+        timeSelect.innerHTML = "<option value=''>Error al cargar horarios</option>";
+      }
+    }
 
-      const horasLibres = horariosDisponibles.filter(
-        (hora) => !horasOcupadas.includes(hora)
-      );
+    // Manejar reserva
+    async function handleReservation(event) {
+      event.preventDefault();
 
-      if (horasLibres.length > 0) {
-        timeSelect.innerHTML = "<option value=''>Selecciona una hora</option>";
-        horasLibres.forEach((hora) => {
-          const option = document.createElement("option");
-          option.value = hora;
-          option.textContent = hora;
-          timeSelect.appendChild(option);
-        });
+      const fullName = document.getElementById("full-name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const massageType = document.getElementById("massage-type").value;
+      const date = document.getElementById("date").value;
+      const time = document.getElementById("time").value;
+      const comments = document.getElementById("comments").value.trim();
+
+      if (fullName && phone && email && massageType && date && time) {
+        try {
+          const reservationsRef = collection(db, "reservations");
+          const q = query(
+            reservationsRef,
+            where("date", "==", date),
+            where("time", "==", time)
+          );
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            alert("⚠️ Esa hora acaba de ser reservada. Elige otra por favor.");
+            actualizarHorasDisponibles();
+            return;
+          }
+
+          const codigoReserva = generarCodigoReserva();
+
+          await addDoc(reservationsRef, {
+            full_name: fullName,
+            phone,
+            email,
+            massage_type: massageType,
+            date,
+            time,
+            comments,
+            status: "Pendiente",
+            reservation_code: codigoReserva,
+            address: direccionLocal,
+          });
+
+          // Mostrar datos en el popup
+          document.getElementById("popup-date").textContent = `${date} a las ${time}`;
+          document.getElementById("popup-service").textContent = massageType.charAt(0).toUpperCase() + massageType.slice(1);
+          document.getElementById("popup-address").textContent = direccionLocal;
+          document.getElementById("popup-hours").textContent = horarioAtencion;
+          document.getElementById("popup-code").textContent = codigoReserva;
+          document.getElementById("popup").style.display = "flex";
+
+          // Limpiar formulario y actualizar horas
+          document.getElementById("reservation-form").reset();
+          actualizarHorasDisponibles();
+
+        } catch (e) {
+          alert("Error al guardar la reserva: " + e.message);
+        }
       } else {
-        timeSelect.innerHTML = "<option value=''>No hay horarios disponibles</option>";
+        alert("Por favor, complete todos los campos requeridos.");
       }
-    } catch (error) {
-      console.error("Error al cargar las horas:", error);
-      timeSelect.innerHTML = "<option value=''>Error al cargar horarios</option>";
     }
-  }
 
-  // Manejar reserva
-// Manejar reserva
-async function handleReservation(event) {
-  event.preventDefault();
+    // Inicializar eventos
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("reservation-form").addEventListener("submit", handleReservation);
+      document.getElementById("date").addEventListener("change", actualizarHorasDisponibles);
 
-  const fullName = document.getElementById("full-name").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const massageType = document.getElementById("massage-type").value;
-  const date = document.getElementById("date").value;
-  const time = document.getElementById("time").value;
-  const comments = document.getElementById("comments").value.trim();
-
-  if (fullName && phone && email && massageType && date && time) {
-    try {
-      const reservationsRef = collection(db, "reservations");
-      const q = query(
-        reservationsRef,
-        where("date", "==", date),
-        where("time", "==", time)
-      );
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        alert("⚠️ Esa hora acaba de ser reservada por otra persona. Elige otra por favor.");
-        actualizarHorasDisponibles();
-        return;
-      }
-
-      const codigoReserva = generarCodigoReserva();
-
-      await addDoc(reservationsRef, {
-        full_name: fullName,
-        phone,
-        email,
-        massage_type: massageType,
-        date,
-        time,
-        comments,
-        status: "Pendiente",
-        reservation_code: codigoReserva,
-        address: direccionLocal,
+      const toggle = document.getElementById("theme-toggle");
+      toggle.addEventListener("click", () => {
+        document.body.classList.toggle("dark");
+        toggle.textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
       });
-
-      // Mostrar datos en el popup
-      document.getElementById("popup-date").textContent = `${date} a las ${time}`;
-      document.getElementById("popup-service").textContent = massageType.charAt(0).toUpperCase() + massageType.slice(1);
-      document.getElementById("popup-address").textContent = direccionLocal;
-      document.getElementById("popup-code").textContent = codigoReserva;
-      document.getElementById("popup").style.display = "flex";
-
-      // 🧹 Limpiar los campos del formulario
-      document.getElementById("reservation-form").reset();
-
-      // 🕓 Actualizar horarios por si la fecha actual sigue seleccionada
-      actualizarHorasDisponibles();
-
-    } catch (e) {
-      alert("Error al guardar la reserva: " + e.message);
-    }
-  } else {
-    alert("Por favor, complete todos los campos requeridos.");
-  }
-}
-
-  // Inicialización de eventos
-  document.addEventListener("DOMContentLoaded", () => {
-    document
-      .getElementById("reservation-form")
-      .addEventListener("submit", handleReservation);
-
-    document
-      .getElementById("date")
-      .addEventListener("change", actualizarHorasDisponibles);
-
-    const toggle = document.getElementById("theme-toggle");
-    toggle.addEventListener("click", () => {
-      document.body.classList.toggle("dark");
-      toggle.textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
     });
-  });
-</script>
-
+  </script>
 
   <style>
     :root {
@@ -248,12 +237,6 @@ async function handleReservation(event) {
       transition: all 0.3s ease;
     }
 
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
-      outline: none;
-    }
-
     button {
       background-color: var(--accent);
       color: white;
@@ -275,7 +258,6 @@ async function handleReservation(event) {
       background-image: url("reserva.jpg");
       background-size: cover;
       background-position: center;
-      animation: fadeIn 1s ease;
       min-height: 400px;
     }
 
@@ -290,7 +272,6 @@ async function handleReservation(event) {
       background-color: rgba(0, 0, 0, 0.6);
       justify-content: center;
       align-items: center;
-      animation: fadeIn 0.5s ease;
     }
 
     .popup-content {
@@ -300,60 +281,11 @@ async function handleReservation(event) {
       border-radius: 12px;
       text-align: center;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
     }
 
     body.dark .popup-content {
       background-color: var(--card-dark);
       color: var(--text-dark);
-    }
-
-    .popup-button {
-      margin-top: 20px;
-      background-color: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 20px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    .popup-button:hover {
-      background-color: var(--accent-hover);
-    }
-
-    /* Toggle dark mode */
-    #theme-toggle {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      font-size: 24px;
-      cursor: pointer;
-      background: none;
-      border: none;
-      outline: none;
-    }
-
-    /* Animaciones */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Responsividad */
-    @media (max-width: 768px) {
-      .container {
-        flex-direction: column;
-      }
-      .image-container {
-        min-height: 200px;
-      }
     }
   </style>
 </head>
@@ -374,10 +306,10 @@ async function handleReservation(event) {
         <label for="email">Correo electrónico</label>
         <input type="email" id="email" name="email" required placeholder="Tu correo electrónico" />
 
-        <label for="massage-type">Tipo de masaje</label>
+        <label for="massage-type">Tipo de servicio</label>
         <select id="massage-type" name="massage-type" required>
           <option value="relajante">Masaje relajante</option>
-          <option value="terapeutico">Masaje terapéutico</option>
+          <option value="terapéutico">Masaje terapéutico</option>
           <option value="deportivo">Masaje deportivo</option>
         </select>
 
@@ -386,10 +318,7 @@ async function handleReservation(event) {
 
         <label for="time">Hora</label>
         <select id="time" name="time" required>
-          <option value="10:00">10:00</option>
-          <option value="11:00">11:00</option>
-          <option value="12:00">12:00</option>
-          <option value="13:00">13:00</option>
+          <option value="">Selecciona una hora</option>
         </select>
 
         <label for="comments">Comentarios (opcional)</label>
@@ -402,19 +331,17 @@ async function handleReservation(event) {
     <div class="image-container"></div>
   </div>
 
-<!-- Popup de confirmación -->
-<div id="popup" class="popup">
-  <div class="popup-content">
-    <h2>¡Reserva exitosa! 🎉</h2>
-    <p>Tu cita ha sido reservada para <strong id="popup-date"></strong>.</p>
-    <p>Servicio: <strong id="popup-service"></strong></p>
-    <p>Dirección: <strong id="popup-address"></strong></p>
-    <p>Número de reserva: <strong id="popup-code"></strong></p>
-    <button class="popup-button" onclick="document.getElementById('popup').style.display='none'">
-      Cerrar
-    </button>
+  <!-- Popup -->
+  <div id="popup" class="popup">
+    <div class="popup-content">
+      <h2>¡Reserva exitosa! 🎉</h2>
+      <p>Tu cita ha sido reservada para <strong id="popup-date"></strong>.</p>
+      <p>Servicio: <strong id="popup-service"></strong></p>
+      <p>Dirección: <strong id="popup-address"></strong></p>
+      <p>Horario de atención: <strong id="popup-hours"></strong></p>
+      <p>Número de reserva: <strong id="popup-code"></strong></p>
+      <button class="popup-button" onclick="document.getElementById('popup').style.display='none'">Cerrar</button>
+    </div>
   </div>
-</div>
-
 </body>
 </html>
