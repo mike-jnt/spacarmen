@@ -431,8 +431,8 @@
   </div>
 </body>
 
+<!-- 🌐 MULTI-IDIOMA -->
 <script>
-  // ✅ Traducciones: Español ↔ Inglés
   const translations = {
     es: {
       title: "Formulario de Reservas",
@@ -445,63 +445,149 @@
       submit: "Reservar cita",
       confirmation: "Reserva confirmada",
       popupMessage: "Tu cita ha sido agendada correctamente.",
-      close: "Cerrar"
+      close: "Cerrar",
+      loading: "Cargando horarios...",
+      selectService: "Selecciona un servicio",
+      services: {
+        "aromatherapy-33": "Aromaterapia 33 esencias suizas (55 min, 65€)",
+        "full-massage": "Masaje completo (55 min, 65€)",
+        "anti-stress": "Masaje antiestrés (55 min, 65€)",
+        "legs-feet": "Masaje piernas y pies (25 min, 35€)",
+        "lymphatic": "Drenaje linfático (55 min, 65€)",
+        "hot-stone": "Masaje con piedras calientes (55 min, 65€)",
+        "deep-tissue": "Masaje profundo (55 min, 65€)",
+        "anti-cellulite": "Masaje anticelulítico (55 min, 65€)",
+        "back-massage": "Masaje de espalda (25 min, 35€)",
+        "reflexology": "Reflexología podal (25 min, 35€)"
+      }
     },
     en: {
       title: "Booking Form",
-      name: "Full name",
-      phone: "Phone number",
-      email: "Email address",
-      service: "Type of service",
-      date: "Booking date",
-      time: "Booking time",
-      submit: "Book appointment",
-      confirmation: "Booking confirmed",
+      name: "Full Name",
+      phone: "Phone",
+      email: "Email Address",
+      service: "Type of Service",
+      date: "Booking Date",
+      time: "Booking Time",
+      submit: "Book Appointment",
+      confirmation: "Booking Confirmed",
       popupMessage: "Your appointment has been successfully scheduled.",
-      close: "Close"
+      close: "Close",
+      loading: "Loading available times...",
+      selectService: "Select a service",
+      services: {
+        "aromatherapy-33": "Aromatherapy 33 Swiss essences (55 min, €65)",
+        "full-massage": "Full Massage (55 min, €65)",
+        "anti-stress": "Anti-Stress Massage (55 min, €65)",
+        "legs-feet": "Legs and Feet Massage (25 min, €35)",
+        "lymphatic": "Lymphatic Drainage (55 min, €65)",
+        "hot-stone": "Hot Stone Massage (55 min, €65)",
+        "deep-tissue": "Deep Tissue Massage (55 min, €65)",
+        "anti-cellulite": "Anti-Cellulite Massage (55 min, €65)",
+        "back-massage": "Back Massage (25 min, €35)",
+        "reflexology": "Reflexology Foot Massage (25 min, €35)"
+      }
     }
   };
 
-  // ✅ Detectar idioma guardado
+  // Detectar idioma guardado o usar español por defecto
   let currentLang = localStorage.getItem("lang") || "es";
 
+  // Crear botón idioma si no existe
+  if (!document.getElementById("lang-toggle")) {
+    const langBtn = document.createElement("button");
+    langBtn.id = "lang-toggle";
+    langBtn.style.position = "fixed";
+    langBtn.style.top = "15px";
+    langBtn.style.right = "15px";
+    langBtn.style.background = "#4CAF50";
+    langBtn.style.color = "white";
+    langBtn.style.border = "none";
+    langBtn.style.padding = "8px 12px";
+    langBtn.style.borderRadius = "6px";
+    langBtn.style.cursor = "pointer";
+    langBtn.style.zIndex = "999";
+    langBtn.textContent = currentLang === "es" ? "🇪🇸 ES" : "🇬🇧 EN";
+    document.body.appendChild(langBtn);
+  }
+
   const toggleBtn = document.getElementById("lang-toggle");
-  toggleBtn.textContent = currentLang === "es" ? "🇪🇸 ES" : "🇬🇧 EN";
 
-  // ✅ Función para aplicar traducción
   function applyTranslation(lang) {
-    document.querySelector("h1").textContent = translations[lang].title;
-    document.querySelector("label[for='name']").textContent = translations[lang].name;
-    document.querySelector("label[for='phone']").textContent = translations[lang].phone;
-    document.querySelector("label[for='email']").textContent = translations[lang].email;
-    document.querySelector("label[for='massage-type']").textContent = translations[lang].service;
-    document.querySelector("label[for='date']").textContent = translations[lang].date;
-    document.querySelector("label[for='time']").textContent = translations[lang].time;
-    document.querySelector("button[type='submit']").textContent = translations[lang].submit;
+    const t = translations[lang];
+    localStorage.setItem("lang", lang);
 
-    // Popup
-    const popup = document.getElementById("confirmationPopup");
-    if (popup) {
-      popup.querySelector("h2").textContent = translations[lang].confirmation;
-      popup.querySelector("p").textContent = translations[lang].popupMessage;
-      popup.querySelector("button").textContent = translations[lang].close;
+    // Títulos y etiquetas
+    const title = document.querySelector("h1");
+    if (title) title.textContent = t.title;
+
+    const nameLabel = document.querySelector("label[for='name']");
+    if (nameLabel) nameLabel.textContent = t.name;
+
+    const phoneLabel = document.querySelector("label[for='phone']");
+    if (phoneLabel) phoneLabel.textContent = t.phone;
+
+    const emailLabel = document.querySelector("label[for='email']");
+    if (emailLabel) emailLabel.textContent = t.email;
+
+    const serviceLabel = document.querySelector("label[for='massage-type']");
+    if (serviceLabel) serviceLabel.textContent = t.service;
+
+    const dateLabel = document.querySelector("label[for='date']");
+    if (dateLabel) dateLabel.textContent = t.date;
+
+    const timeLabel = document.querySelector("label[for='time']");
+    if (timeLabel) timeLabel.textContent = t.time;
+
+    const submitBtn = document.querySelector("button[type='submit']");
+    if (submitBtn) submitBtn.textContent = t.submit;
+
+    // Placeholder
+    const nameInput = document.getElementById("name");
+    if (nameInput) nameInput.placeholder = t.name;
+
+    const phoneInput = document.getElementById("phone");
+    if (phoneInput) phoneInput.placeholder = t.phone;
+
+    const emailInput = document.getElementById("email");
+    if (emailInput) emailInput.placeholder = t.email;
+
+    // Selector de servicios
+    const serviceSelect = document.getElementById("massage-type");
+    if (serviceSelect) {
+      serviceSelect.querySelector("option[value='']").textContent = t.selectService;
+      for (let opt of serviceSelect.options) {
+        if (opt.value && t.services[opt.value]) {
+          opt.textContent = t.services[opt.value];
+        }
+      }
     }
 
-    // Actualiza bandera
+    // Popup de confirmación
+    const popup = document.getElementById("confirmationPopup");
+    if (popup) {
+      const popupTitle = popup.querySelector("h2");
+      const popupMsg = popup.querySelector("p");
+      const popupBtn = popup.querySelector("button");
+      if (popupTitle) popupTitle.textContent = t.confirmation;
+      if (popupMsg) popupMsg.textContent = t.popupMessage;
+      if (popupBtn) popupBtn.textContent = t.close;
+    }
+
     toggleBtn.textContent = lang === "es" ? "🇪🇸 ES" : "🇬🇧 EN";
   }
 
-  // ✅ Evento para cambiar idioma
+  // Evento de cambio de idioma
   toggleBtn.addEventListener("click", () => {
     currentLang = currentLang === "es" ? "en" : "es";
-    localStorage.setItem("lang", currentLang);
     applyTranslation(currentLang);
   });
 
-  // ✅ Aplicar idioma inicial
+  // Aplicar idioma al cargar
   document.addEventListener("DOMContentLoaded", () => {
     applyTranslation(currentLang);
   });
 </script>
+
 
 </html>
