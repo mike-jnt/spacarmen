@@ -306,12 +306,91 @@
         <label for="email">Correo electrónico</label>
         <input type="email" id="email" name="email" required placeholder="Tu correo electrónico" />
 
-        <label for="massage-type">Tipo de servicio</label>
-        <select id="massage-type" name="massage-type" required>
-          <option value="relajante">Masaje relajante</option>
-          <option value="terapéutico">Masaje terapéutico</option>
-          <option value="deportivo">Masaje deportivo</option>
-        </select>
+<label for="massage-type">Tipo de servicio</label>
+<select id="massage-type" name="massage-type" required>
+  <option value="">Selecciona un servicio</option>
+
+  <!-- 🧖 MASAJES -->
+  <optgroup label="Masajes">
+    <option value="aromatherapy-33">Aromatherapy 33 Swiss essences (55 min, 65€)</option>
+    <option value="full-massage">Full Massage (55 min, 65€)</option>
+    <option value="anti-stress">Anti-stress Massage (55 min, 65€)</option>
+    <option value="legs-feet">Legs and Feet Local Massage (25 min, 35€)</option>
+    <option value="lymphatic">Lymphatic Drainage (55 min, 65€)</option>
+    <option value="hot-stone">Hot Stone Massage (55 min, 65€)</option>
+    <option value="deep-tissue">Deep Tissue Massage (55 min, 65€)</option>
+    <option value="anti-cellulite">Anti-cellulite Massage (55 min, 65€)</option>
+    <option value="back-massage">Back Massage (25 min, 35€)</option>
+    <option value="reflexology">Reflexology Foot Massage (25 min, 35€)</option>
+  </optgroup>
+
+  <!-- 💆‍♀️ TRATAMIENTOS FACIALES -->
+  <optgroup label="Tratamientos Faciales">
+    <option value="blistering">Blistering Rejuvenating Treatment (50 min, 55€)</option>
+    <option value="24k-gold">Rejuvenating with 24k Gold (50 min, 70€)</option>
+    <option value="hydrating">Intensive Hydrating Rejuvenator (50 min, 70€)</option>
+    <option value="deep-cleansing">Deep Cleansing Facial (55 min, 65€)</option>
+    <option value="hyaluronic">Hyaluronic Acid Anti-Aging (50 min, 80€)</option>
+  </optgroup>
+
+  <!-- 💅 MANICURE -->
+  <optgroup label="Manicura">
+    <option value="painting-french">Painting / French (15€)</option>
+    <option value="decoration-one">Decoration (per nail) (2€)</option>
+    <option value="decoration-girls">Decoration & Painting for Girls (18€)</option>
+    <option value="file-polish">File and Polish (14€)</option>
+    <option value="porcelain-nails">Porcelain Nails (40€)</option>
+    <option value="water-spa">Water Spa Manicure (27€)</option>
+    <option value="water-french">Water Spa French (30€)</option>
+    <option value="paraffin-bath">Paraffin Bath (15€)</option>
+    <option value="opi-shellac">OPI Shellac Semi-permanent (37€)</option>
+    <option value="opi-builder">OPI with Builder (38€)</option>
+    <option value="acrylic-gel">Acrylic or Gel Extensions (38€)</option>
+    <option value="men-manicure">Men’s Manicure (23€)</option>
+  </optgroup>
+
+  <!-- 💅 PEDICURE -->
+  <optgroup label="Pedicura">
+    <option value="water-pedicure">Water Pedicure Spa / French (50 min, 34€ / 37€)</option>
+    <option value="opi-gel">OPI Water Pedicure with Sculptured Nails (47€)</option>
+    <option value="knights-pedicure">Knights Pedicure (38€)</option>
+    <option value="opi-shellac-pedi">OPI Shellac Semi-permanent (37€)</option>
+    <option value="opi-french-pedi">OPI French (36€)</option>
+    <option value="opi-nail-repair">OPI Nail Repair (5€)</option>
+    <option value="paraffin-bath-pedi">Paraffin Bath (15€)</option>
+  </optgroup>
+
+  <!-- 🌸 ESTÉTICA -->
+  <optgroup label="Estética y Pestañas">
+    <option value="eyebrows">Eyebrow Tint (6€)</option>
+    <option value="eyebrow-tint">Eyebrow Tint + Shape (10€)</option>
+    <option value="eyelash-tint">Eyelash Tint (11€)</option>
+    <option value="eyelash-extension">Eyelash Extension (60 min, 60€)</option>
+  </optgroup>
+
+  <!-- 💫 DEPILACIÓN -->
+  <optgroup label="Depilación (Waxing)">
+    <option value="eyebrows-wax">Eyebrows (6€)</option>
+    <option value="upperlip-chin">Upper Lip and Chin (8€)</option>
+    <option value="armpits">Armpits (8€)</option>
+    <option value="half-legs">Half Legs (17€)</option>
+    <option value="back-wax">Back (23€)</option>
+    <option value="bikini">Bikini (25€)</option>
+    <option value="full-legs">Full Legs (33€)</option>
+  </optgroup>
+
+  <!-- 💇‍♀️ PELUQUERÍA -->
+  <optgroup label="Corte y Peinado">
+    <option value="ladies-wash-cut">Ladies Wash and Cut (25€)</option>
+    <option value="ladies-wash-dry">Ladies Wash, Cut & Blow Dry (30€)</option>
+    <option value="ladies-restyle">Restyle & Blow Dry (40€)</option>
+    <option value="gents-wash-cut">Gents Wash & Cut (21€)</option>
+    <option value="gents-machine">Gents Machine Cut (15€)</option>
+    <option value="child-girl">Girls Cut (15€)</option>
+    <option value="child-boy">Boys Cut (12€)</option>
+  </optgroup>
+</select>
+
 
         <label for="date">Fecha</label>
         <input type="date" id="date" name="date" required />
