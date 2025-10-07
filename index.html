@@ -292,6 +292,13 @@
 
 <body>
   <button id="theme-toggle">🌙</button>
+ <!-- Selector de idioma -->
+<div style="position: fixed; top: 15px; right: 15px; z-index: 1000;">
+  <button id="lang-toggle" style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">
+    🇪🇸 ES
+  </button>
+</div>
+
 
   <div class="container">
     <div class="form-container">
@@ -423,4 +430,78 @@
     </div>
   </div>
 </body>
+
+<script>
+  // ✅ Traducciones: Español ↔ Inglés
+  const translations = {
+    es: {
+      title: "Formulario de Reservas",
+      name: "Nombre completo",
+      phone: "Teléfono",
+      email: "Correo electrónico",
+      service: "Tipo de servicio",
+      date: "Fecha de la reserva",
+      time: "Hora de la reserva",
+      submit: "Reservar cita",
+      confirmation: "Reserva confirmada",
+      popupMessage: "Tu cita ha sido agendada correctamente.",
+      close: "Cerrar"
+    },
+    en: {
+      title: "Booking Form",
+      name: "Full name",
+      phone: "Phone number",
+      email: "Email address",
+      service: "Type of service",
+      date: "Booking date",
+      time: "Booking time",
+      submit: "Book appointment",
+      confirmation: "Booking confirmed",
+      popupMessage: "Your appointment has been successfully scheduled.",
+      close: "Close"
+    }
+  };
+
+  // ✅ Detectar idioma guardado
+  let currentLang = localStorage.getItem("lang") || "es";
+
+  const toggleBtn = document.getElementById("lang-toggle");
+  toggleBtn.textContent = currentLang === "es" ? "🇪🇸 ES" : "🇬🇧 EN";
+
+  // ✅ Función para aplicar traducción
+  function applyTranslation(lang) {
+    document.querySelector("h1").textContent = translations[lang].title;
+    document.querySelector("label[for='name']").textContent = translations[lang].name;
+    document.querySelector("label[for='phone']").textContent = translations[lang].phone;
+    document.querySelector("label[for='email']").textContent = translations[lang].email;
+    document.querySelector("label[for='massage-type']").textContent = translations[lang].service;
+    document.querySelector("label[for='date']").textContent = translations[lang].date;
+    document.querySelector("label[for='time']").textContent = translations[lang].time;
+    document.querySelector("button[type='submit']").textContent = translations[lang].submit;
+
+    // Popup
+    const popup = document.getElementById("confirmationPopup");
+    if (popup) {
+      popup.querySelector("h2").textContent = translations[lang].confirmation;
+      popup.querySelector("p").textContent = translations[lang].popupMessage;
+      popup.querySelector("button").textContent = translations[lang].close;
+    }
+
+    // Actualiza bandera
+    toggleBtn.textContent = lang === "es" ? "🇪🇸 ES" : "🇬🇧 EN";
+  }
+
+  // ✅ Evento para cambiar idioma
+  toggleBtn.addEventListener("click", () => {
+    currentLang = currentLang === "es" ? "en" : "es";
+    localStorage.setItem("lang", currentLang);
+    applyTranslation(currentLang);
+  });
+
+  // ✅ Aplicar idioma inicial
+  document.addEventListener("DOMContentLoaded", () => {
+    applyTranslation(currentLang);
+  });
+</script>
+
 </html>
