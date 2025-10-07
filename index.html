@@ -1,593 +1,240 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reserva tu cita</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
-
-  <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      query,
-      where,
-      getDocs,
-    } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDpCWpQfKSJwSvAyIL421LQHPDRE1PfY8k",
-      authDomain: "spaspa-30bad.firebaseapp.com",
-      projectId: "spaspa-30bad",
-      storageBucket: "spaspa-30bad.firebasestorage.app",
-      messagingSenderId: "262101316591",
-      appId: "1:262101316591:web:5c250165b10ef314373c1a",
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // 🔹 Información del negocio
-    const direccionLocal = "Calle Juan Dias Rodriguez # 29, barrio Puerto Rico Mogán";
-    const horarioAtencion = "De 10:00 am a 18:00";
-
-    // 🔹 Horarios disponibles base (de 10:00 a 18:00)
-    const horariosDisponibles = [
-      "10:00", "11:00", "12:00", "13:00", "14:00",
-      "15:00", "16:00", "17:00", "18:00"
-    ];
-
-    // Generar código de reserva único
-    function generarCodigoReserva() {
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let result = "";
-      for (let i = 0; i < 6; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-      return "RSV-" + result;
-    }
-
-    // Actualizar horas disponibles según fecha
-    async function actualizarHorasDisponibles() {
-      const date = document.getElementById("date").value;
-      const timeSelect = document.getElementById("time");
-      if (!date) return;
-
-      timeSelect.innerHTML = "<option value=''>Cargando...</option>";
-
-      try {
-        const reservationsRef = collection(db, "reservations");
-        const q = query(reservationsRef, where("date", "==", date));
-        const querySnapshot = await getDocs(q);
-        const horasOcupadas = querySnapshot.docs.map((doc) => doc.data().time);
-        const horasLibres = horariosDisponibles.filter((hora) => !horasOcupadas.includes(hora));
-
-        if (horasLibres.length > 0) {
-          timeSelect.innerHTML = "<option value=''>Selecciona una hora</option>";
-          horasLibres.forEach((hora) => {
-            const option = document.createElement("option");
-            option.value = hora;
-            option.textContent = hora;
-            timeSelect.appendChild(option);
-          });
-        } else {
-          timeSelect.innerHTML = "<option value=''>No hay horarios disponibles</option>";
-        }
-      } catch (error) {
-        console.error("Error al cargar las horas:", error);
-        timeSelect.innerHTML = "<option value=''>Error al cargar horarios</option>";
-      }
-    }
-
-    // Manejar reserva
-    async function handleReservation(event) {
-      event.preventDefault();
-
-      const fullName = document.getElementById("full-name").value.trim();
-      const phone = document.getElementById("phone").value.trim();
-      const email = document.getElementById("email").value.trim();
-      const massageType = document.getElementById("massage-type").value;
-      const date = document.getElementById("date").value;
-      const time = document.getElementById("time").value;
-      const comments = document.getElementById("comments").value.trim();
-
-      if (fullName && phone && email && massageType && date && time) {
-        try {
-          const reservationsRef = collection(db, "reservations");
-          const q = query(
-            reservationsRef,
-            where("date", "==", date),
-            where("time", "==", time)
-          );
-          const querySnapshot = await getDocs(q);
-
-          if (!querySnapshot.empty) {
-            alert("⚠️ Esa hora acaba de ser reservada. Elige otra por favor.");
-            actualizarHorasDisponibles();
-            return;
-          }
-
-          const codigoReserva = generarCodigoReserva();
-
-          await addDoc(reservationsRef, {
-            full_name: fullName,
-            phone,
-            email,
-            massage_type: massageType,
-            date,
-            time,
-            comments,
-            status: "Pendiente",
-            reservation_code: codigoReserva,
-            address: direccionLocal,
-          });
-
-          // Mostrar datos en el popup
-          document.getElementById("popup-date").textContent = `${date} a las ${time}`;
-          document.getElementById("popup-service").textContent = massageType.charAt(0).toUpperCase() + massageType.slice(1);
-          document.getElementById("popup-address").textContent = direccionLocal;
-          document.getElementById("popup-hours").textContent = horarioAtencion;
-          document.getElementById("popup-code").textContent = codigoReserva;
-          document.getElementById("popup").style.display = "flex";
-
-          // Limpiar formulario y actualizar horas
-          document.getElementById("reservation-form").reset();
-          actualizarHorasDisponibles();
-
-        } catch (e) {
-          alert("Error al guardar la reserva: " + e.message);
-        }
-      } else {
-        alert("Por favor, complete todos los campos requeridos.");
-      }
-    }
-
-    // Inicializar eventos
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("reservation-form").addEventListener("submit", handleReservation);
-      document.getElementById("date").addEventListener("change", actualizarHorasDisponibles);
-
-      const toggle = document.getElementById("theme-toggle");
-      toggle.addEventListener("click", () => {
-        document.body.classList.toggle("dark");
-        toggle.textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
-      });
-    });
-  </script>
+  <title>Booking Form - Ángeles Beauty Center</title>
 
   <style>
-    :root {
-      --bg-light: #f9f9f9;
-      --bg-dark: #1f1f1f;
-      --card-light: #ffffff;
-      --card-dark: #2b2b2b;
-      --text-light: #333;
-      --text-dark: #f1f1f1;
-      --accent: #4caf50;
-      --accent-hover: #45a049;
-    }
-
     body {
-      font-family: "Poppins", sans-serif;
-      background-color: var(--bg-light);
-      color: var(--text-light);
+      font-family: 'Poppins', sans-serif;
+      background-color: #f8f8f8;
+      color: #333;
       margin: 0;
       padding: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      transition: background-color 0.5s ease, color 0.5s ease;
-    }
-
-    body.dark {
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
-    }
-
-    .container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: stretch;
-      width: 90%;
-      max-width: 1100px;
-      background-color: var(--card-light);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 6px 30px rgba(0, 0, 0, 0.15);
-      transition: background-color 0.5s ease;
-      animation: fadeIn 0.8s ease;
-    }
-
-    body.dark .container {
-      background-color: var(--card-dark);
-    }
-
-    .form-container {
-      flex: 1;
-      min-width: 300px;
-      padding: 30px;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      animation: slideUp 1s ease;
+      align-items: center;
+      min-height: 100vh;
     }
 
     h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      font-weight: 600;
+      margin-top: 40px;
+      font-size: 28px;
+      color: #2F4F4F;
+    }
+
+    form {
+      background-color: #fff;
+      border-radius: 12px;
+      padding: 30px;
+      margin-top: 20px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
     }
 
     label {
-      font-weight: 500;
-      margin-bottom: 5px;
+      font-weight: 600;
+      font-size: 15px;
     }
 
-    input, select, textarea {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
+    input, select, textarea, button {
+      padding: 10px;
+      border-radius: 8px;
       border: 1px solid #ccc;
-      margin-bottom: 15px;
       font-size: 15px;
-      transition: all 0.3s ease;
+      width: 100%;
     }
 
     button {
-      background-color: var(--accent);
+      background-color: #4CAF50;
       color: white;
       border: none;
-      border-radius: 8px;
-      padding: 14px;
-      font-size: 16px;
       cursor: pointer;
-      transition: background-color 0.3s ease, transform 0.2s ease;
+      font-size: 16px;
+      transition: 0.3s;
     }
 
     button:hover {
-      background-color: var(--accent-hover);
-      transform: scale(1.05);
+      background-color: #45a049;
     }
 
-    .image-container {
-      flex: 1;
-      background-image: url("reserva.jpg");
-      background-size: cover;
-      background-position: center;
-      min-height: 400px;
-    }
-
-    /* Popup */
-    .popup {
-      display: none;
+    #confirmationPopup {
       position: fixed;
-      left: 0;
       top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
       justify-content: center;
       align-items: center;
+      z-index: 1000;
     }
 
-    .popup-content {
-      background-color: var(--card-light);
-      color: var(--text-light);
-      padding: 40px;
+    #confirmationPopup .popup-content {
+      background: white;
+      padding: 30px;
       border-radius: 12px;
       text-align: center;
+      max-width: 400px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
-    body.dark .popup-content {
-      background-color: var(--card-dark);
-      color: var(--text-dark);
+    #confirmationPopup h2 {
+      margin-bottom: 10px;
+      color: #4CAF50;
+    }
+
+    #confirmationPopup p {
+      margin-bottom: 15px;
+    }
+
+    @media (max-width: 600px) {
+      form {
+        padding: 20px;
+      }
     }
   </style>
 </head>
 
 <body>
-  <button id="theme-toggle">🌙</button>
- <!-- Selector de idioma -->
-<div style="position: fixed; top: 15px; right: 15px; z-index: 1000;">
-  <button id="lang-toggle" style="background:#4CAF50; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">
-    🇪🇸 ES
-  </button>
-</div>
+  <h1>Booking Form</h1>
 
+  <form id="bookingForm">
+    <label for="name">Full Name</label>
+    <input type="text" id="name" name="name" placeholder="Enter your full name" required />
 
-  <div class="container">
-    <div class="form-container">
-      <h1>Reserva tu cita</h1>
-      <form id="reservation-form">
-        <label for="full-name">Nombre completo</label>
-        <input type="text" id="full-name" name="full-name" required placeholder="Tu nombre completo" />
+    <label for="phone">Phone Number</label>
+    <input type="tel" id="phone" name="phone" placeholder="Enter your phone number" required />
 
-        <label for="phone">Teléfono</label>
-        <input type="tel" id="phone" name="phone" required placeholder="Tu número de teléfono" />
+    <label for="email">Email Address</label>
+    <input type="email" id="email" name="email" placeholder="Enter your email" required />
 
-        <label for="email">Correo electrónico</label>
-        <input type="email" id="email" name="email" required placeholder="Tu correo electrónico" />
+    <label for="massage-type">Type of Service</label>
+    <select id="massage-type" name="massage-type" required>
+      <option value="">Select a service</option>
 
-<label for="massage-type">Tipo de servicio</label>
-<select id="massage-type" name="massage-type" required>
-  <option value="">Selecciona un servicio</option>
+      <!-- MASSAGE -->
+      <optgroup label="Massage">
+        <option value="aromatherapy-33">Aromatherapy 33 Swiss essences (55 min, €65)</option>
+        <option value="full-massage">Full Massage (55 min, €65)</option>
+        <option value="anti-stress">Anti-Stress Massage (55 min, €65)</option>
+        <option value="legs-feet">Legs and Feet Local Massage (25 min, €35)</option>
+        <option value="lymphatic">Lymphatic Drainage (55 min, €65)</option>
+        <option value="hot-stone">Hot Stone Massage (55 min, €65)</option>
+        <option value="deep-tissue">Deep Tissue Massage (55 min, €65)</option>
+        <option value="anti-cellulite">Anti-Cellulite Massage (55 min, €65)</option>
+        <option value="back-massage">Back Massage (25 min, €35)</option>
+        <option value="reflexology">Reflexology Foot Massage (25 min, €35)</option>
+      </optgroup>
 
-  <!-- 🧖 MASAJES -->
-  <optgroup label="Masajes">
-    <option value="aromatherapy-33">Aromatherapy 33 Swiss essences (55 min, 65€)</option>
-    <option value="full-massage">Full Massage (55 min, 65€)</option>
-    <option value="anti-stress">Anti-stress Massage (55 min, 65€)</option>
-    <option value="legs-feet">Legs and Feet Local Massage (25 min, 35€)</option>
-    <option value="lymphatic">Lymphatic Drainage (55 min, 65€)</option>
-    <option value="hot-stone">Hot Stone Massage (55 min, 65€)</option>
-    <option value="deep-tissue">Deep Tissue Massage (55 min, 65€)</option>
-    <option value="anti-cellulite">Anti-cellulite Massage (55 min, 65€)</option>
-    <option value="back-massage">Back Massage (25 min, 35€)</option>
-    <option value="reflexology">Reflexology Foot Massage (25 min, 35€)</option>
-  </optgroup>
+      <!-- FACIAL TREATMENTS -->
+      <optgroup label="Facial Treatments">
+        <option value="blistering">Blistering Rejuvenating Treatment (50 min, €55)</option>
+        <option value="24k-gold">Rejuvenating with 24k Gold (50 min, €70)</option>
+        <option value="hydrating">Intensive Hydrating Rejuvenator (50 min, €70)</option>
+        <option value="deep-cleansing">Deep Cleansing Facial (55 min, €65)</option>
+        <option value="hyaluronic">Hyaluronic Acid Anti-Aging (50 min, €80)</option>
+      </optgroup>
 
-  <!-- 💆‍♀️ TRATAMIENTOS FACIALES -->
-  <optgroup label="Tratamientos Faciales">
-    <option value="blistering">Blistering Rejuvenating Treatment (50 min, 55€)</option>
-    <option value="24k-gold">Rejuvenating with 24k Gold (50 min, 70€)</option>
-    <option value="hydrating">Intensive Hydrating Rejuvenator (50 min, 70€)</option>
-    <option value="deep-cleansing">Deep Cleansing Facial (55 min, 65€)</option>
-    <option value="hyaluronic">Hyaluronic Acid Anti-Aging (50 min, 80€)</option>
-  </optgroup>
+      <!-- MANICURE -->
+      <optgroup label="Manicure">
+        <option value="painting-french">Painting / French (€15)</option>
+        <option value="decoration-one">Decoration per Nail (€2)</option>
+        <option value="decoration-girls">Decoration & Painting for Girls (€18)</option>
+        <option value="file-polish">File and Polish (€14)</option>
+        <option value="porcelain-nails">Porcelain Nails (€40)</option>
+        <option value="water-spa">Water Spa Manicure (€27)</option>
+        <option value="water-french">Water Spa French (€30)</option>
+        <option value="paraffin-bath">Paraffin Bath (€15)</option>
+        <option value="opi-shellac">OPI Shellac Semi-permanent (€37)</option>
+        <option value="opi-builder">OPI with Builder (€38)</option>
+        <option value="acrylic-gel">Acrylic or Gel Extensions (€38)</option>
+        <option value="men-manicure">Men’s Manicure (€23)</option>
+      </optgroup>
 
-  <!-- 💅 MANICURE -->
-  <optgroup label="Manicura">
-    <option value="painting-french">Painting / French (15€)</option>
-    <option value="decoration-one">Decoration (per nail) (2€)</option>
-    <option value="decoration-girls">Decoration & Painting for Girls (18€)</option>
-    <option value="file-polish">File and Polish (14€)</option>
-    <option value="porcelain-nails">Porcelain Nails (40€)</option>
-    <option value="water-spa">Water Spa Manicure (27€)</option>
-    <option value="water-french">Water Spa French (30€)</option>
-    <option value="paraffin-bath">Paraffin Bath (15€)</option>
-    <option value="opi-shellac">OPI Shellac Semi-permanent (37€)</option>
-    <option value="opi-builder">OPI with Builder (38€)</option>
-    <option value="acrylic-gel">Acrylic or Gel Extensions (38€)</option>
-    <option value="men-manicure">Men’s Manicure (23€)</option>
-  </optgroup>
+      <!-- PEDICURE -->
+      <optgroup label="Pedicure">
+        <option value="water-pedicure">Water Pedicure Spa / French (50 min, €34 / €37)</option>
+        <option value="opi-gel">OPI Water Pedicure with Sculptured Nails (€47)</option>
+        <option value="knights-pedicure">Knights Pedicure (€38)</option>
+        <option value="opi-shellac-pedi">OPI Shellac Semi-permanent (€37)</option>
+        <option value="opi-french-pedi">OPI French (€36)</option>
+        <option value="opi-nail-repair">OPI Nail Repair (€5)</option>
+        <option value="paraffin-bath-pedi">Paraffin Bath (€15)</option>
+      </optgroup>
 
-  <!-- 💅 PEDICURE -->
-  <optgroup label="Pedicura">
-    <option value="water-pedicure">Water Pedicure Spa / French (50 min, 34€ / 37€)</option>
-    <option value="opi-gel">OPI Water Pedicure with Sculptured Nails (47€)</option>
-    <option value="knights-pedicure">Knights Pedicure (38€)</option>
-    <option value="opi-shellac-pedi">OPI Shellac Semi-permanent (37€)</option>
-    <option value="opi-french-pedi">OPI French (36€)</option>
-    <option value="opi-nail-repair">OPI Nail Repair (5€)</option>
-    <option value="paraffin-bath-pedi">Paraffin Bath (15€)</option>
-  </optgroup>
+      <!-- AESTHETICS -->
+      <optgroup label="Aesthetics & Lashes">
+        <option value="eyebrows">Eyebrow Tint (€6)</option>
+        <option value="eyebrow-tint">Eyebrow Tint + Shape (€10)</option>
+        <option value="eyelash-tint">Eyelash Tint (€11)</option>
+        <option value="eyelash-extension">Eyelash Extension (60 min, €60)</option>
+      </optgroup>
 
-  <!-- 🌸 ESTÉTICA -->
-  <optgroup label="Estética y Pestañas">
-    <option value="eyebrows">Eyebrow Tint (6€)</option>
-    <option value="eyebrow-tint">Eyebrow Tint + Shape (10€)</option>
-    <option value="eyelash-tint">Eyelash Tint (11€)</option>
-    <option value="eyelash-extension">Eyelash Extension (60 min, 60€)</option>
-  </optgroup>
+      <!-- WAXING -->
+      <optgroup label="Waxing">
+        <option value="eyebrows-wax">Eyebrows (€6)</option>
+        <option value="upperlip-chin">Upper Lip & Chin (€8)</option>
+        <option value="armpits">Armpits (€8)</option>
+        <option value="half-legs">Half Legs (€17)</option>
+        <option value="back-wax">Back (€23)</option>
+        <option value="bikini">Bikini (€25)</option>
+        <option value="full-legs">Full Legs (€33)</option>
+      </optgroup>
 
-  <!-- 💫 DEPILACIÓN -->
-  <optgroup label="Depilación (Waxing)">
-    <option value="eyebrows-wax">Eyebrows (6€)</option>
-    <option value="upperlip-chin">Upper Lip and Chin (8€)</option>
-    <option value="armpits">Armpits (8€)</option>
-    <option value="half-legs">Half Legs (17€)</option>
-    <option value="back-wax">Back (23€)</option>
-    <option value="bikini">Bikini (25€)</option>
-    <option value="full-legs">Full Legs (33€)</option>
-  </optgroup>
+      <!-- HAIRDRESSING -->
+      <optgroup label="Hairdressing">
+        <option value="ladies-wash-cut">Ladies Wash & Cut (€25)</option>
+        <option value="ladies-wash-dry">Ladies Wash, Cut & Blow Dry (€30)</option>
+        <option value="ladies-restyle">Restyle & Blow Dry (€40)</option>
+        <option value="gents-wash-cut">Gents Wash & Cut (€21)</option>
+        <option value="gents-machine">Gents Machine Cut (€15)</option>
+        <option value="child-girl">Girls Cut (€15)</option>
+        <option value="child-boy">Boys Cut (€12)</option>
+      </optgroup>
+    </select>
 
-  <!-- 💇‍♀️ PELUQUERÍA -->
-  <optgroup label="Corte y Peinado">
-    <option value="ladies-wash-cut">Ladies Wash and Cut (25€)</option>
-    <option value="ladies-wash-dry">Ladies Wash, Cut & Blow Dry (30€)</option>
-    <option value="ladies-restyle">Restyle & Blow Dry (40€)</option>
-    <option value="gents-wash-cut">Gents Wash & Cut (21€)</option>
-    <option value="gents-machine">Gents Machine Cut (15€)</option>
-    <option value="child-girl">Girls Cut (15€)</option>
-    <option value="child-boy">Boys Cut (12€)</option>
-  </optgroup>
-</select>
+    <label for="date">Booking Date</label>
+    <input type="date" id="date" name="date" required />
 
+    <label for="time">Booking Time</label>
+    <select id="time" name="time" required>
+      <option value="">Select available time</option>
+    </select>
 
-        <label for="date">Fecha</label>
-        <input type="date" id="date" name="date" required />
+    <button type="submit">Book Appointment</button>
+  </form>
 
-        <label for="time">Hora</label>
-        <select id="time" name="time" required>
-          <option value="">Selecciona una hora</option>
-        </select>
-
-        <label for="comments">Comentarios (opcional)</label>
-        <textarea id="comments" name="comments" placeholder="Escribe algún comentario adicional"></textarea>
-
-        <button type="submit">Reservar cita</button>
-      </form>
-    </div>
-
-    <div class="image-container"></div>
-  </div>
-
-  <!-- Popup -->
-  <div id="popup" class="popup">
+  <!-- Confirmation Popup -->
+  <div id="confirmationPopup">
     <div class="popup-content">
-      <h2>¡Reserva exitosa! 🎉</h2>
-      <p>Tu cita ha sido reservada para <strong id="popup-date"></strong>.</p>
-      <p>Servicio: <strong id="popup-service"></strong></p>
-      <p>Dirección: <strong id="popup-address"></strong></p>
-      <p>Horario de atención: <strong id="popup-hours"></strong></p>
-      <p>Número de reserva: <strong id="popup-code"></strong></p>
-      <button class="popup-button" onclick="document.getElementById('popup').style.display='none'">Cerrar</button>
+      <h2>Booking Confirmed</h2>
+      <p>Your appointment has been successfully scheduled!</p>
+      <button id="closePopup">Close</button>
     </div>
   </div>
-</body>
 
-<!-- 🌐 MULTI-IDIOMA -->
-<script>
-  const translations = {
-    es: {
-      title: "Formulario de Reservas",
-      name: "Nombre completo",
-      phone: "Teléfono",
-      email: "Correo electrónico",
-      service: "Tipo de servicio",
-      date: "Fecha de la reserva",
-      time: "Hora de la reserva",
-      submit: "Reservar cita",
-      confirmation: "Reserva confirmada",
-      popupMessage: "Tu cita ha sido agendada correctamente.",
-      close: "Cerrar",
-      loading: "Cargando horarios...",
-      selectService: "Selecciona un servicio",
-      services: {
-        "aromatherapy-33": "Aromaterapia 33 esencias suizas (55 min, 65€)",
-        "full-massage": "Masaje completo (55 min, 65€)",
-        "anti-stress": "Masaje antiestrés (55 min, 65€)",
-        "legs-feet": "Masaje piernas y pies (25 min, 35€)",
-        "lymphatic": "Drenaje linfático (55 min, 65€)",
-        "hot-stone": "Masaje con piedras calientes (55 min, 65€)",
-        "deep-tissue": "Masaje profundo (55 min, 65€)",
-        "anti-cellulite": "Masaje anticelulítico (55 min, 65€)",
-        "back-massage": "Masaje de espalda (25 min, 35€)",
-        "reflexology": "Reflexología podal (25 min, 35€)"
-      }
-    },
-    en: {
-      title: "Booking Form",
-      name: "Full Name",
-      phone: "Phone",
-      email: "Email Address",
-      service: "Type of Service",
-      date: "Booking Date",
-      time: "Booking Time",
-      submit: "Book Appointment",
-      confirmation: "Booking Confirmed",
-      popupMessage: "Your appointment has been successfully scheduled.",
-      close: "Close",
-      loading: "Loading available times...",
-      selectService: "Select a service",
-      services: {
-        "aromatherapy-33": "Aromatherapy 33 Swiss essences (55 min, €65)",
-        "full-massage": "Full Massage (55 min, €65)",
-        "anti-stress": "Anti-Stress Massage (55 min, €65)",
-        "legs-feet": "Legs and Feet Massage (25 min, €35)",
-        "lymphatic": "Lymphatic Drainage (55 min, €65)",
-        "hot-stone": "Hot Stone Massage (55 min, €65)",
-        "deep-tissue": "Deep Tissue Massage (55 min, €65)",
-        "anti-cellulite": "Anti-Cellulite Massage (55 min, €65)",
-        "back-massage": "Back Massage (25 min, €35)",
-        "reflexology": "Reflexology Foot Massage (25 min, €35)"
-      }
-    }
-  };
-
-  // Detectar idioma guardado o usar español por defecto
-  let currentLang = localStorage.getItem("lang") || "es";
-
-  // Crear botón idioma si no existe
-  if (!document.getElementById("lang-toggle")) {
-    const langBtn = document.createElement("button");
-    langBtn.id = "lang-toggle";
-    langBtn.style.position = "fixed";
-    langBtn.style.top = "15px";
-    langBtn.style.right = "15px";
-    langBtn.style.background = "#4CAF50";
-    langBtn.style.color = "white";
-    langBtn.style.border = "none";
-    langBtn.style.padding = "8px 12px";
-    langBtn.style.borderRadius = "6px";
-    langBtn.style.cursor = "pointer";
-    langBtn.style.zIndex = "999";
-    langBtn.textContent = currentLang === "es" ? "🇪🇸 ES" : "🇬🇧 EN";
-    document.body.appendChild(langBtn);
-  }
-
-  const toggleBtn = document.getElementById("lang-toggle");
-
-  function applyTranslation(lang) {
-    const t = translations[lang];
-    localStorage.setItem("lang", lang);
-
-    // Títulos y etiquetas
-    const title = document.querySelector("h1");
-    if (title) title.textContent = t.title;
-
-    const nameLabel = document.querySelector("label[for='name']");
-    if (nameLabel) nameLabel.textContent = t.name;
-
-    const phoneLabel = document.querySelector("label[for='phone']");
-    if (phoneLabel) phoneLabel.textContent = t.phone;
-
-    const emailLabel = document.querySelector("label[for='email']");
-    if (emailLabel) emailLabel.textContent = t.email;
-
-    const serviceLabel = document.querySelector("label[for='massage-type']");
-    if (serviceLabel) serviceLabel.textContent = t.service;
-
-    const dateLabel = document.querySelector("label[for='date']");
-    if (dateLabel) dateLabel.textContent = t.date;
-
-    const timeLabel = document.querySelector("label[for='time']");
-    if (timeLabel) timeLabel.textContent = t.time;
-
-    const submitBtn = document.querySelector("button[type='submit']");
-    if (submitBtn) submitBtn.textContent = t.submit;
-
-    // Placeholder
-    const nameInput = document.getElementById("name");
-    if (nameInput) nameInput.placeholder = t.name;
-
-    const phoneInput = document.getElementById("phone");
-    if (phoneInput) phoneInput.placeholder = t.phone;
-
-    const emailInput = document.getElementById("email");
-    if (emailInput) emailInput.placeholder = t.email;
-
-    // Selector de servicios
-    const serviceSelect = document.getElementById("massage-type");
-    if (serviceSelect) {
-      serviceSelect.querySelector("option[value='']").textContent = t.selectService;
-      for (let opt of serviceSelect.options) {
-        if (opt.value && t.services[opt.value]) {
-          opt.textContent = t.services[opt.value];
-        }
-      }
-    }
-
-    // Popup de confirmación
+  <script>
+    // Example logic: shows popup after booking (replace with Firebase logic)
+    const form = document.getElementById("bookingForm");
     const popup = document.getElementById("confirmationPopup");
-    if (popup) {
-      const popupTitle = popup.querySelector("h2");
-      const popupMsg = popup.querySelector("p");
-      const popupBtn = popup.querySelector("button");
-      if (popupTitle) popupTitle.textContent = t.confirmation;
-      if (popupMsg) popupMsg.textContent = t.popupMessage;
-      if (popupBtn) popupBtn.textContent = t.close;
-    }
+    const closePopup = document.getElementById("closePopup");
 
-    toggleBtn.textContent = lang === "es" ? "🇪🇸 ES" : "🇬🇧 EN";
-  }
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      popup.style.display = "flex";
+      form.reset();
+    });
 
-  // Evento de cambio de idioma
-  toggleBtn.addEventListener("click", () => {
-    currentLang = currentLang === "es" ? "en" : "es";
-    applyTranslation(currentLang);
-  });
-
-  // Aplicar idioma al cargar
-  document.addEventListener("DOMContentLoaded", () => {
-    applyTranslation(currentLang);
-  });
-</script>
-
-
+    closePopup.addEventListener("click", () => {
+      popup.style.display = "none";
+    });
+  </script>
+</body>
 </html>
