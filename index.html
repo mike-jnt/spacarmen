@@ -35,11 +35,73 @@
     const businessAddress = "Calle Juan Dias Rodriguez # 29, Puerto Rico Mogán";
     const businessHours = "From 10:00 am to 18:00";
 
-    // 🔹 Available hours base (10:00 - 18:00)
-    const availableHours = [
-      "10:00", "11:00", "12:00", "13:00", "14:00",
-      "15:00", "16:00", "17:00", "18:00"
-    ];
+    // 🔹 Business hours window (10:00 - 18:00) + 30-minute booking intervals
+    const openTime = "10:00";
+    const closeTime = "18:00";
+    const slotMinutes = 30;
+
+    function pad2(n) { return String(n).padStart(2, "0"); }
+
+    function parseHHMM(t) {
+      const [h, m] = (t || "").split(":").map(Number);
+      return { h: h || 0, m: m || 0 };
+    }
+
+    function toMinutes(t) {
+      const { h, m } = parseHHMM(t);
+      return h * 60 + m;
+    }
+
+    function minutesToHHMM(mins) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${pad2(h)}:${pad2(m)}`;
+    }
+
+    function buildBaseSlots() {
+      const start = toMinutes(openTime);
+      const end = toMinutes(closeTime);
+      const slots = [];
+      for (let t = start; t <= end; t += slotMinutes) slots.push(minutesToHHMM(t));
+      return slots;
+    }
+
+    function todayISO() {
+      const now = new Date();
+      return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+    }
+
+    function nowMinutes() {
+      const n = new Date();
+      return n.getHours() * 60 + n.getMinutes();
+    }
+
+    function parseDurationFromText(text) {
+      // Extract first "<number> min" if present.
+      const s = (text || "").toString();
+      const m = s.match(/(\d+)\s*min/i);
+      if (m) return Number(m[1]) || 30;
+      // If no duration found, default to 30 minutes to match your 30-minute interval setup
+      return 30;
+    }
+
+    function intervalsOverlap(aStart, aEnd, bStart, bEnd) {
+      // [aStart, aEnd) overlaps [bStart, bEnd) if they intersect
+      return aStart < bEnd && bStart < aEnd;
+    }
+
+    function reservationIntervalFromDoc(data) {
+      const t = (data?.time || "").toString();
+      if (!t.includes(":")) return null;
+
+      const start = toMinutes(t);
+      const dur =
+        Number(data?.service_duration) ||
+        parseDurationFromText(data?.massage_type) ||
+        30;
+
+      return { start, end: start + dur };
+    }
 
     // Generate unique booking code
     function generateBookingCode() {
@@ -49,31 +111,50 @@
       return "RSV-" + result;
     }
 
-    // Update available hours based on date
+    // Update available times based on date + selected service duration
     async function updateAvailableHours() {
       const date = document.getElementById("date").value;
       const timeSelect = document.getElementById("time");
+      const serviceSelect = document.getElementById("massage-type");
       if (!date) return;
 
       timeSelect.innerHTML = "<option value=''>Loading...</option>";
+
+      const selectedOpt = serviceSelect?.options?.[serviceSelect.selectedIndex];
+      const serviceLabel = selectedOpt?.textContent || "";
+      const durationMin = parseDurationFromText(serviceLabel);
+
+      const baseSlots = buildBaseSlots();
+
+      // ✅ Always show the full business window (10:00–18:00) in 30-minute intervals.
+      // We do NOT hide past times; we only remove times that overlap existing bookings.
+      let candidateSlots = baseSlots;
 
       try {
         const reservationsRef = collection(db, "reservations");
         const q = query(reservationsRef, where("date", "==", date));
         const querySnapshot = await getDocs(q);
-        const bookedHours = querySnapshot.docs.map((doc) => doc.data().time);
-        const freeHours = availableHours.filter((hour) => !bookedHours.includes(hour));
 
-        if (freeHours.length > 0) {
-          timeSelect.innerHTML = "<option value=''>Select an hour</option>";
-          freeHours.forEach((hour) => {
+        const reservedIntervals = querySnapshot.docs
+          .map((d) => reservationIntervalFromDoc(d.data()))
+          .filter(Boolean);
+
+        const freeSlots = candidateSlots.filter((hhmm) => {
+          const start = toMinutes(hhmm);
+          const end = start + durationMin;
+          return !reservedIntervals.some((iv) => intervalsOverlap(start, end, iv.start, iv.end));
+        });
+
+        if (freeSlots.length > 0) {
+          timeSelect.innerHTML = "<option value=''>Select a time</option>";
+          freeSlots.forEach((hhmm) => {
             const option = document.createElement("option");
-            option.value = hour;
-            option.textContent = hour;
+            option.value = hhmm;
+            option.textContent = hhmm;
             timeSelect.appendChild(option);
           });
         } else {
-          timeSelect.innerHTML = "<option value=''>No available hours</option>";
+          timeSelect.innerHTML = "<option value=''>No available times</option>";
         }
       } catch (error) {
         console.error("Error loading hours:", error);
@@ -88,23 +169,37 @@
       const fullName = document.getElementById("full-name").value.trim();
       const phone = document.getElementById("phone").value.trim();
       const email = document.getElementById("email").value.trim();
-      const serviceType = document.getElementById("massage-type").value;
+
+      const serviceSelect = document.getElementById("massage-type");
+      const serviceId = serviceSelect.value;
+      const serviceLabel = serviceSelect.options[serviceSelect.selectedIndex]?.textContent || serviceId;
+      const serviceDuration = parseDurationFromText(serviceLabel);
+
       const date = document.getElementById("date").value;
       const time = document.getElementById("time").value;
       const comments = document.getElementById("comments").value.trim();
 
-      if (fullName && phone && email && serviceType && date && time) {
+      if (fullName && phone && email && serviceId && date && time) {
         try {
           const reservationsRef = collection(db, "reservations");
-          const q = query(
-            reservationsRef,
-            where("date", "==", date),
-            where("time", "==", time)
-          );
+
+          // ✅ Overlap-safe conflict check (important for 30-min slots)
+          const q = query(reservationsRef, where("date", "==", date));
           const querySnapshot = await getDocs(q);
 
-          if (!querySnapshot.empty) {
-            alert("⚠️ That time has just been booked. Please choose another one.");
+          const chosenStart = toMinutes(time);
+          const chosenEnd = chosenStart + serviceDuration;
+
+          const reservedIntervals = querySnapshot.docs
+            .map((d) => reservationIntervalFromDoc(d.data()))
+            .filter(Boolean);
+
+          const hasOverlap = reservedIntervals.some((iv) =>
+            intervalsOverlap(chosenStart, chosenEnd, iv.start, iv.end)
+          );
+
+          if (hasOverlap) {
+            alert("⚠️ That time overlaps another booking. Please choose another one.");
             updateAvailableHours();
             return;
           }
@@ -115,24 +210,34 @@
             full_name: fullName,
             phone,
             email,
-            massage_type: serviceType,
+
+            // Keep both (useful later)
+            service_id: serviceId,
+
+            // Save readable service text (your admin panel can show it directly)
+            massage_type: serviceLabel,
+
+            // Duration used for overlap logic
+            service_duration: serviceDuration,
+
             date,
             time,
             comments,
             status: "Pendiente",
             reservation_code: bookingCode,
             address: businessAddress,
+            created_at: new Date().toISOString(),
           });
 
           // Show confirmation popup
           document.getElementById("popup-date").textContent = `${date} at ${time}`;
-          document.getElementById("popup-service").textContent = serviceType.charAt(0).toUpperCase() + serviceType.slice(1);
+          document.getElementById("popup-service").textContent = serviceLabel;
           document.getElementById("popup-address").textContent = businessAddress;
           document.getElementById("popup-hours").textContent = businessHours;
           document.getElementById("popup-code").textContent = bookingCode;
           document.getElementById("popup").style.display = "flex";
 
-          // Reset form and update hours
+          // Reset form and update times
           document.getElementById("reservation-form").reset();
           updateAvailableHours();
 
@@ -145,8 +250,15 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      // ✅ Block past dates in the date picker
+      const dateInput = document.getElementById("date");
+      dateInput.min = todayISO();
+
       document.getElementById("reservation-form").addEventListener("submit", handleReservation);
       document.getElementById("date").addEventListener("change", updateAvailableHours);
+      document.getElementById("massage-type").addEventListener("change", () => {
+        if (document.getElementById("date").value) updateAvailableHours();
+      });
 
       const toggle = document.getElementById("theme-toggle");
       toggle.addEventListener("click", () => {
@@ -494,7 +606,24 @@
 
         <label for="time">Time</label>
         <select id="time" name="time" required>
-          <option value="">Select an hour</option>
+          <option value="">Select a time</option>
+          <option value="10:00">10:00</option>
+          <option value="10:30">10:30</option>
+          <option value="11:00">11:00</option>
+          <option value="11:30">11:30</option>
+          <option value="12:00">12:00</option>
+          <option value="12:30">12:30</option>
+          <option value="13:00">13:00</option>
+          <option value="13:30">13:30</option>
+          <option value="14:00">14:00</option>
+          <option value="14:30">14:30</option>
+          <option value="15:00">15:00</option>
+          <option value="15:30">15:30</option>
+          <option value="16:00">16:00</option>
+          <option value="16:30">16:30</option>
+          <option value="17:00">17:00</option>
+          <option value="17:30">17:30</option>
+          <option value="18:00">18:00</option>
         </select>
 
         <label for="comments">Comments (optional)</label>
